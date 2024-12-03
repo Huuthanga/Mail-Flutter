@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'password_change_screen.dart';
+import 'two_step_verification_screen.dart';
 
 class HomePage extends StatelessWidget {
   final User user;
@@ -40,7 +41,18 @@ class HomePage extends StatelessWidget {
                         ),
                       );
                     },
-                    child: Text('Register'),
+                    child: Text('Change Password'),
+            ),
+            TextButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => TwoStepVerificationScreen(),
+                        ),
+                      );
+                    },
+                    child: Text('Change Password'),
             ),
           ],
         ),

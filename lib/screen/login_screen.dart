@@ -4,6 +4,7 @@ import 'otp_verification_screen.dart';
 import 'phone_registration_screen.dart';
 import 'home.dart';
 import 'package:country_picker/country_picker.dart';
+import 'forget_password.dart';
 
 class LoginScreen extends StatefulWidget {
   @override
@@ -26,57 +27,67 @@ class _LoginScreenState extends State<LoginScreen> {
     FirebaseAuth auth = FirebaseAuth.instance;
 
     try {
-      await auth.verifyPhoneNumber(
-        phoneNumber: '$_selectedCountryCode${_phoneController.text.trim()}',
-        verificationCompleted: (PhoneAuthCredential credential) async {
-          await auth.signInWithCredential(credential);
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (context) => HomePage(user: FirebaseAuth.instance.currentUser!),
+    await auth.verifyPhoneNumber(
+      phoneNumber: '$_selectedCountryCode${_phoneController.text.trim()}',
+      verificationCompleted: (PhoneAuthCredential credential) async {
+        await auth.signInWithCredential(credential);
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => HomePage(user: FirebaseAuth.instance.currentUser!),
+          ),
+        );
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Phone number automatically verified!')),
+        );
+      },
+      verificationFailed: (FirebaseAuthException e) {
+        setState(() {
+          _isLoading = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Verification failed: ${e.message}')),
+        );
+      },
+      codeSent: (String verificationId, int? resendToken) {
+        setState(() {
+          _isLoading = false;
+        });
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => OTPVerificationScreen(
+              verificationId: verificationId,
+              onVerificationSuccess: (User user) {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => HomePage(user: user),
+                  ),
+                );
+              },
             ),
-          );
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Phone number automatically verified!')),
-          );
-        },
-        verificationFailed: (FirebaseAuthException e) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(e.message ?? 'Verification Failed')),
-          );
-        },
-        codeSent: (String verificationId, int? resendToken) {
-          setState(() {
-            _isLoading = false;
-          });
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => OTPVerificationScreen(
-                verificationId: verificationId,
-                onVerificationSuccess: (User user) {
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => HomePage(user: user),
-                    ),
-                  );
-                },
-              ),
-            ),
-          );
-        },
-        codeAutoRetrievalTimeout: (String verificationId) {},
-      );
-    } catch (e) {
-      setState(() {
-        _isLoading = false;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: ${e.toString()}')),
-      );
-    }
+          ),
+        );
+        // Ensure focus on OTP input
+        Future.delayed(Duration(milliseconds: 500), () {
+          FocusScope.of(context).requestFocus(FocusNode());
+        });
+      },
+      codeAutoRetrievalTimeout: (String verificationId) {
+        // Handle auto-retrieval timeout
+      },
+    );
+  } catch (e) {
+    setState(() {
+      _isLoading = false;   
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Error: ${e.toString()}')),
+    );
   }
+}
+  
 
   Future<void> _loginWithEmail() async {
     setState(() {
@@ -204,8 +215,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                             ),
                           ),
-                          Expanded(
-                            
+                          Expanded(                           
                             child: TextField(                          
                               controller: _phoneController,
                               keyboardType: TextInputType.phone,                            
@@ -271,7 +281,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => PhoneRegistrationScreen(),
+                          builder: (context) => RegistrationScreen(),
                         ),
                       );
                     },
@@ -279,6 +289,22 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ],
               ),
+              SizedBox(height: 16),
+              TextButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ForgetPasswordScreen(),
+                    ),
+                  );
+                },
+                child: Text(
+                  'Forgot Password?',
+                  style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold),
+                ),
+              ),
+
             ],
           ),
         ),
