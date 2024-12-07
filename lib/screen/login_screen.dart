@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'otp_verification_screen.dart';
-import 'phone_registration_screen.dart';
 import 'home.dart';
 import 'package:country_picker/country_picker.dart';
 import 'forget_password.dart';
+import 'phone_registration_screen.dart';
+import 'otp_verification_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   @override
@@ -16,78 +16,61 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
   final _phoneController = TextEditingController();
   bool _isLoading = false;
-  bool _isPhoneLogin = false; // Toggle between email and phone login
-  String _selectedCountryCode = '+1'; // Default country code
+  bool _isPhoneLogin = false;
+  String _selectedCountryCode = '+1';
 
   Future<void> _sendOTP() async {
     setState(() {
       _isLoading = true;
     });
 
-    FirebaseAuth auth = FirebaseAuth.instance;
-
     try {
-    await auth.verifyPhoneNumber(
-      phoneNumber: '$_selectedCountryCode${_phoneController.text.trim()}',
-      verificationCompleted: (PhoneAuthCredential credential) async {
-        await auth.signInWithCredential(credential);
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => HomePage(user: FirebaseAuth.instance.currentUser!),
-          ),
-        );
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Phone number automatically verified!')),
-        );
-      },
-      verificationFailed: (FirebaseAuthException e) {
-        setState(() {
-          _isLoading = false;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Verification failed: ${e.message}')),
-        );
-      },
-      codeSent: (String verificationId, int? resendToken) {
-        setState(() {
-          _isLoading = false;
-        });
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => OTPVerificationScreen(
-              verificationId: verificationId,
-              onVerificationSuccess: (User user) {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => HomePage(user: user),
-                  ),
-                );
-              },
+      FirebaseAuth.instance.verifyPhoneNumber(
+        phoneNumber: '$_selectedCountryCode${_phoneController.text.trim()}',
+        verificationCompleted: (PhoneAuthCredential credential) async {
+          await FirebaseAuth.instance.signInWithCredential(credential);
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => HomePage(user: FirebaseAuth.instance.currentUser!),
             ),
-          ),
-        );
-        // Ensure focus on OTP input
-        Future.delayed(Duration(milliseconds: 500), () {
-          FocusScope.of(context).requestFocus(FocusNode());
-        });
-      },
-      codeAutoRetrievalTimeout: (String verificationId) {
-        // Handle auto-retrieval timeout
-      },
-    );
-  } catch (e) {
-    setState(() {
-      _isLoading = false;   
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Error: ${e.toString()}')),
-    );
+          );
+        },
+        verificationFailed: (FirebaseAuthException e) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Verification failed: ${e.message}')),
+          );
+        },
+        codeSent: (String verificationId, int? resendToken) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => OTPVerificationScreen(
+                verificationId: verificationId,
+                onVerificationSuccess: (User user) {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => HomePage(user: user),
+                    ),
+                  );
+                },
+              ),
+            ),
+          );
+        },
+        codeAutoRetrievalTimeout: (String verificationId) {},
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: ${e.toString()}')),
+      );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
-}
-  
 
   Future<void> _loginWithEmail() async {
     setState(() {
@@ -100,7 +83,6 @@ class _LoginScreenState extends State<LoginScreen> {
         password: _passwordController.text.trim(),
       );
 
-      // Navigate to HomePage
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
@@ -147,7 +129,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 child: Column(
                   children: [
-                    // Toggle between Email and Phone login
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -183,7 +164,6 @@ class _LoginScreenState extends State<LoginScreen> {
                       ],
                     ),
                     SizedBox(height: 16),
-                    // Conditional Rendering: Email or Phone input
                     if (_isPhoneLogin)
                       Row(
                         children: [
@@ -194,32 +174,29 @@ class _LoginScreenState extends State<LoginScreen> {
                                 showPhoneCode: true,
                                 onSelect: (Country country) {
                                   setState(() {
-                                    _selectedCountryCode =
-                                        '+${country.phoneCode}';
+                                    _selectedCountryCode = '+${country.phoneCode}';
                                   });
                                 },
                               );
                             },
                             child: Container(
                               padding: EdgeInsets.symmetric(horizontal: 8),
-                              
                               child: Row(
                                 children: [
                                   Text(
                                     _selectedCountryCode,
                                     style: TextStyle(fontSize: 16),
-                                  
                                   ),
                                   Icon(Icons.arrow_drop_down),
                                 ],
                               ),
                             ),
                           ),
-                          Expanded(                           
-                            child: TextField(                          
+                          Expanded(
+                            child: TextField(
                               controller: _phoneController,
-                              keyboardType: TextInputType.phone,                            
-                              decoration: InputDecoration(    
+                              keyboardType: TextInputType.phone,
+                              decoration: InputDecoration(
                                 labelText: 'Enter Phone Number',
                                 border: OutlineInputBorder(),
                               ),
@@ -232,7 +209,6 @@ class _LoginScreenState extends State<LoginScreen> {
                         children: [
                           TextField(
                             controller: _emailController,
-                            keyboardType: TextInputType.emailAddress,
                             decoration: InputDecoration(
                               labelText: 'Enter Email',
                               border: OutlineInputBorder(),
@@ -241,11 +217,11 @@ class _LoginScreenState extends State<LoginScreen> {
                           SizedBox(height: 8),
                           TextField(
                             controller: _passwordController,
-                            obscureText: true,
                             decoration: InputDecoration(
                               labelText: 'Enter Password',
                               border: OutlineInputBorder(),
                             ),
+                            obscureText: true,
                           ),
                         ],
                       ),
@@ -271,7 +247,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
               SizedBox(height: 20),
-              // Registration Link
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -289,7 +264,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ],
               ),
-              SizedBox(height: 16),
               TextButton(
                 onPressed: () {
                   Navigator.push(
@@ -304,7 +278,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold),
                 ),
               ),
-
             ],
           ),
         ),

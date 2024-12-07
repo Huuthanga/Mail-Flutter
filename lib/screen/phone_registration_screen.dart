@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -24,6 +25,7 @@ class MyApp extends StatelessWidget {
 class RegistrationScreen extends StatefulWidget {
   @override
   _RegistrationScreenState createState() => _RegistrationScreenState();
+  
 }
 
 class _RegistrationScreenState extends State<RegistrationScreen> {
@@ -36,31 +38,42 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   String _selectedCountryCode = '+1';
 
   Future<void> _registerWithEmail() async {
-    if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
-      _showMessage('Please fill in all fields.');
-      return;
-    }
-    if (_passwordController.text != _confirmPasswordController.text) {
-      _showMessage('Passwords do not match.');
-      return;
+  if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
+    _showMessage('Please fill in all fields.');
+    return;
+  }
+  if (_passwordController.text != _confirmPasswordController.text) {
+    _showMessage('Passwords do not match.');
+    return;
+  }
+
+  setState(() {
+    _isLoading = true;
+  });
+
+  try {
+    final userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+      email: _emailController.text.trim(),
+      password: _passwordController.text.trim(),
+    );
+
+    // Save user info to Firestore
+    final user = userCredential.user;
+    if (user != null) {
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+        'email': user.email?.toLowerCase(),
+        'uid': user.uid,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
     }
 
+    _showMessage('Registration successful!');
+  } on FirebaseAuthException catch (e) {
+    String errorMessage = _getFirebaseErrorMessage(e);
+    _showMessage(errorMessage);
+  } finally {
     setState(() {
-      _isLoading = true;
-    });
-
-    try {
-      await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
-      );
-      _showMessage('Registration successful!');
-    } on FirebaseAuthException catch (e) {
-      String errorMessage = _getFirebaseErrorMessage(e);
-      _showMessage(errorMessage);
-    } finally {
-      setState(() {
-        _isLoading = false;
+      _isLoading = false;
       });
     }
   }
