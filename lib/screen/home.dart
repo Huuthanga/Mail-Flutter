@@ -158,52 +158,19 @@ class _HomePageState extends State<HomePage> {
                   final subject = emailData['subject'] ?? '';
                   final body = emailData['body'] ?? '';
                   return subject.toLowerCase().contains(searchQuery.toLowerCase()) || 
-                        body.toLowerCase().contains(searchQuery.toLowerCase());
+                         body.toLowerCase().contains(searchQuery.toLowerCase());
                 }).toList();
 
                 return ListView.builder(
                   itemCount: filteredEmails.length,
                   itemBuilder: (context, index) {
                     final email = filteredEmails[index].data() as Map<String, dynamic>;
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          
-                          borderRadius: BorderRadius.circular(8.0),
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color.fromARGB(255, 103, 103, 103).withOpacity(0.1),
-                              spreadRadius: 1,
-                              blurRadius: 1,
-                              offset: Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: ListTile(
-                          contentPadding: EdgeInsets.all(12.0),
-                          title: Text(
-                            email['subject'] ?? 'No Subject',
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                          subtitle: Text(email['body'] ?? 'No Content'),
-                          onTap: () {
-                            // Navigate to detailed email view
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => ViewEmailScreen(email: email),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                    );
+                    return _buildCompactEmailListTile(email, filteredEmails[index].id);
                   },
                 );
               },
             ),
-          )
+          ),
         ],
       ),
       floatingActionButton: FloatingActionButton(
@@ -380,7 +347,7 @@ class ViewAllEmailsScreen extends StatelessWidget {
               final email = emails[index].data() as Map<String, dynamic>;
               return ListTile(
                 title: Text(email['subject'] ?? 'No Subject'),
-                subtitle: Text(email['body'] ?? 'No Content'),
+                
                 onTap: () {
                   Navigator.push(
                     context,
