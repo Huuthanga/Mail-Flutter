@@ -132,6 +132,18 @@ class _LoginScreenState extends State<LoginScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
+                      Image.network(
+                        'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQI3xpQMedA9WwJG1Xcdlx0WdGj4VB8_jHEZpdsPnuNSNMwpGLKvTNwDmuBmcs-Q-qszLs&usqp=CAU',
+                        width: 100, // Adjust size as needed
+                        height: 100,
+                        fit: BoxFit.contain,
+                      ),
+                    ],
+                  ),
+                    SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
                         TextButton(
                           onPressed: () {
                             setState(() {

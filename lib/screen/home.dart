@@ -66,49 +66,14 @@ class _HomePageState extends State<HomePage> {
                 child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Text(
-                      'User Information',
-                      style: TextStyle(color: Colors.white, fontSize: 20),
-                    ),
-                    SizedBox(height: 16.0),
-                    TextField(
-                      decoration: InputDecoration(
-                        labelText: 'Name',
-                        labelStyle: TextStyle(color: Colors.white),
-                        filled: true,
-                        fillColor: Colors.white.withOpacity(0.2),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8.0),
-                        ),
-                      ),
-                    ),
-                    SizedBox(height: 16.0),
-                    TextField(
-                      keyboardType: TextInputType.number,
-                      decoration: InputDecoration(
-                        labelText: 'Age',
-                        labelStyle: TextStyle(color: Colors.white),
-                        filled: true,
-                        fillColor: Colors.white.withOpacity(0.2),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8.0),
-                        ),
-                      ),
-                    ),
-                    SizedBox(height: 16.0),
-                    TextField(
-                      keyboardType: TextInputType.phone,
-                      decoration: InputDecoration(
-                        labelText: 'Phone',
-                        labelStyle: TextStyle(color: Colors.white),
-                        filled: true,
-                        fillColor: Colors.white.withOpacity(0.2),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8.0),
-                        ),
-                      ),
+                    Image.network(
+                      'https://png.pngtree.com/template/20190717/ourmid/pngtree-gmail-logo-png-image_229718',
+                    width: 120, // Adjust size as needed
+                    height: 120,
+                    
                     ),
                   ],
                 ),

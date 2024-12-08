@@ -4,7 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 import 'package:code/screen/setting/theme_provider.dart';
 import 'package:code/screen/password_change_screen.dart';
-
+import 'package:code/screen/setting/UploadProfileScreenWeb.dart';
 import 'package:code/screen/two_step_verification_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
@@ -25,6 +25,11 @@ class SettingsScreen extends StatelessWidget {
             leading: Icon(Icons.lock),
             title: Text('Change Password'),
             onTap: () => _changePassword(context),
+          ),
+          ListTile(
+            leading: Icon(Icons.upload_file),
+            title: Text('Upload Profile'),
+            onTap: () => _uploadProfile(context),
           ),
           
           ListTile(
@@ -74,11 +79,22 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 
+
   void _changePassword(BuildContext context) {
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => PasswordChangeScreen(user: user),
+      ),
+    );
+  }
+
+   void _uploadProfile(BuildContext context) {
+    // Navigate to the UploadProfileScreen
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => UploadProfileScreenWeb(user: user.email ?? ''),
       ),
     );
   }
