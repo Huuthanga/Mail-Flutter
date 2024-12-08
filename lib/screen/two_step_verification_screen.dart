@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class TwoStepVerificationScreen extends StatefulWidget {
+  final User user;
+
+  TwoStepVerificationScreen({required this.user});
+  
   @override
   _TwoStepVerificationScreenState createState() =>
       _TwoStepVerificationScreenState();

@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:code/screen/login_screen.dart';
 
 class PasswordChangeScreen extends StatefulWidget {
+  final User user;
+
+  PasswordChangeScreen({required this.user});
   @override
   _PasswordChangeScreenState createState() => _PasswordChangeScreenState();
 }
@@ -10,6 +14,7 @@ class _PasswordChangeScreenState extends State<PasswordChangeScreen> {
   final _currentPasswordController = TextEditingController();
   final _newPasswordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
 
   Future<void> _changePassword() async {
@@ -29,9 +34,7 @@ class _PasswordChangeScreenState extends State<PasswordChangeScreen> {
       User? user = auth.currentUser;
 
       if (user != null) {
-        // Get the user's email for re-authentication
         String email = user.email ?? '';
-        
         // Re-authenticate the user
         AuthCredential credential = EmailAuthProvider.credential(
           email: email,
@@ -45,9 +48,12 @@ class _PasswordChangeScreenState extends State<PasswordChangeScreen> {
           SnackBar(content: Text('Password updated successfully!')),
         );
 
-        // Optionally, sign out the user and redirect them to the login screen
+        // Optionally, sign out the user and redirect to login
         await auth.signOut();
-        Navigator.popUntil(context, (route) => route.isFirst);
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => LoginScreen()),
+          (Route<dynamic> route) => false,
+        );
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -68,40 +74,92 @@ class _PasswordChangeScreenState extends State<PasswordChangeScreen> {
         title: Text('Change Password'),
         backgroundColor: Colors.green,
       ),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
-        child: Center(
+        child: Form(
+          key: _formKey,
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              TextField(
+              Text(
+                'Change Password Screen for ${widget.user.email ?? "user"}',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 20),
+              TextFormField(
                 controller: _currentPasswordController,
                 obscureText: true,
-                decoration: InputDecoration(labelText: 'Current Password'),
+                decoration: InputDecoration(
+                  labelText: 'Current Password',
+                  border: OutlineInputBorder(),
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter your current password';
+                  }
+                  return null;
+                },
               ),
               SizedBox(height: 20),
-              TextField(
+              TextFormField(
                 controller: _newPasswordController,
                 obscureText: true,
-                decoration: InputDecoration(labelText: 'New Password'),
+                decoration: InputDecoration(
+                  labelText: 'New Password',
+                  border: OutlineInputBorder(),
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter a new password';
+                  } else if (value.length < 6) {
+                    return 'Password must be at least 6 characters long';
+                  }
+                  return null;
+                },
               ),
               SizedBox(height: 20),
-              TextField(
+              TextFormField(
                 controller: _confirmPasswordController,
                 obscureText: true,
-                decoration: InputDecoration(labelText: 'Confirm New Password'),
+                decoration: InputDecoration(
+                  labelText: 'Confirm New Password',
+                  border: OutlineInputBorder(),
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please confirm your new password';
+                  } else if (value != _newPasswordController.text) {
+                    return 'Passwords do not match';
+                  }
+                  return null;
+                },
               ),
-              SizedBox(height: 20),
+              SizedBox(height: 30),
               _isLoading
                   ? CircularProgressIndicator()
                   : ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
+                        minimumSize: Size(double.infinity, 50),
+                      ),
                       onPressed: _changePassword,
-                      child: Text('Change Password'),
+                      child: Text(
+                        'Change Password',
+                        style: TextStyle(fontSize: 16),
+                      ),
                     ),
             ],
           ),
         ),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _currentPasswordController.dispose();
+    _newPasswordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
   }
 }

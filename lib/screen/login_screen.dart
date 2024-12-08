@@ -106,7 +106,7 @@ class _LoginScreenState extends State<LoginScreen> {
       backgroundColor: Colors.green[50],
       appBar: AppBar(
         title: Text('Login'),
-        backgroundColor: Colors.green,
+        backgroundColor: Colors.blue,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -141,7 +141,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           child: Text(
                             'Email Login',
                             style: TextStyle(
-                              color: !_isPhoneLogin ? Colors.green : Colors.grey,
+                              color: !_isPhoneLogin ? Colors.blue : Colors.grey,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -156,7 +156,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           child: Text(
                             'Phone Login',
                             style: TextStyle(
-                              color: _isPhoneLogin ? Colors.green : Colors.grey,
+                              color: _isPhoneLogin ? Colors.blue : Colors.grey,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -232,7 +232,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             onPressed:
                                 _isPhoneLogin ? _sendOTP : _loginWithEmail,
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.green,
+                              backgroundColor: Colors.blue,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(8),
                               ),
@@ -275,7 +275,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 },
                 child: Text(
                   'Forgot Password?',
-                  style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold),
+                  style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold),
                 ),
               ),
             ],

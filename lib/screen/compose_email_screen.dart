@@ -2,11 +2,58 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
-class ComposeEmailScreen extends StatelessWidget {
+class ComposeEmailScreen extends StatefulWidget {
+  @override
+  _ComposeEmailScreenState createState() => _ComposeEmailScreenState();
+}
+
+class _ComposeEmailScreenState  extends State<ComposeEmailScreen> {
   final TextEditingController recipientController = TextEditingController();
   final TextEditingController subjectController = TextEditingController();
   final TextEditingController bodyController = TextEditingController();
+  
+  @override
+  void dispose() {
+    super.dispose();
+    // Lưu bản nháp khi người dùng rời khỏi màn hình nếu chưa gửi thư
+    _saveDraft();
+  }
 
+  void _saveDraft() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      return;
+    }
+
+    final recipientEmail = recipientController.text.trim().toLowerCase();
+    final subject = subjectController.text.trim();
+    final body = bodyController.text.trim();
+
+    if (recipientEmail.isEmpty || subject.isEmpty || body.isEmpty) {
+      return;
+    }
+
+    try {
+      // Tạo bản nháp email
+      final emailData = {
+        'senderId': user.uid,
+        'receiverEmail': recipientEmail,
+        'senderEmail': user.email,
+        'subject': subject,
+        'body': body,
+        'timestamp': FieldValue.serverTimestamp(),
+        'folder': 'Draft',
+      };
+
+      // Lưu vào thư mục Draft
+      await FirebaseFirestore.instance.collection('emails').add(emailData);
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to save draft: $e')),
+      );
+    }
+  }
+  
   void sendEmail(BuildContext context) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {

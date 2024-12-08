@@ -1,9 +1,12 @@
 import 'package:code/screen/login_screen.dart';
+import 'settings_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'compose_email_screen.dart';
-import 'package:intl/intl.dart'; // For timestamp formatting
+import 'package:intl/intl.dart'; 
+import 'package:code/screen/setting/theme_provider.dart';
+import 'package:provider/provider.dart';
 
 class HomePage extends StatefulWidget {
   final User user;
@@ -16,7 +19,8 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   String currentFolder = 'Inbox'; // Default folder
-  late Stream<QuerySnapshot> emailStream; // Track the email stream
+  late Stream<QuerySnapshot> emailStream;
+  String searchQuery = '';
 
   final List<String> folders = ['Inbox', 'Starred', 'Sent', 'Draft', 'Trash'];
 
@@ -24,7 +28,6 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     emailStream = _getEmailsStream();
-    print('Fetching emails for folder: $currentFolder'); // Initialize the stream
   }
 
   @override
@@ -32,11 +35,25 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Home - $currentFolder'),
-        backgroundColor: Colors.green,
+        backgroundColor: Colors.red,
         actions: [
           IconButton(
-            icon: Icon(Icons.logout),
-            onPressed: _logout,
+            icon: Icon(Icons.email),
+            tooltip: 'View All Emails',
+            onPressed: _navigateToViewAllEmails,
+          ),
+          IconButton(
+            icon: Icon(Icons.settings),
+            onPressed: _navigateToSettings,
+          ),
+          IconButton(
+            icon: Icon(Icons.search),
+            onPressed: () {
+              showSearch(
+                context: context,
+                delegate: EmailSearchDelegate(currentFolder: currentFolder, user: widget.user),
+              );
+            },
           ),
         ],
       ),
@@ -44,23 +61,70 @@ class _HomePageState extends State<HomePage> {
         child: ListView(
           children: [
             DrawerHeader(
-              decoration: BoxDecoration(color: Colors.green),
-              child: Center(
-                child: Text(
-                  'Folders',
-                  style: TextStyle(color: Colors.white, fontSize: 20),
+              decoration: BoxDecoration(color: Colors.red),
+              child: SingleChildScrollView(
+                child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'User Information',
+                      style: TextStyle(color: Colors.white, fontSize: 20),
+                    ),
+                    SizedBox(height: 16.0),
+                    TextField(
+                      decoration: InputDecoration(
+                        labelText: 'Name',
+                        labelStyle: TextStyle(color: Colors.white),
+                        filled: true,
+                        fillColor: Colors.white.withOpacity(0.2),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8.0),
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: 16.0),
+                    TextField(
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(
+                        labelText: 'Age',
+                        labelStyle: TextStyle(color: Colors.white),
+                        filled: true,
+                        fillColor: Colors.white.withOpacity(0.2),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8.0),
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: 16.0),
+                    TextField(
+                      keyboardType: TextInputType.phone,
+                      decoration: InputDecoration(
+                        labelText: 'Phone',
+                        labelStyle: TextStyle(color: Colors.white),
+                        filled: true,
+                        fillColor: Colors.white.withOpacity(0.2),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8.0),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
                 ),
               ),
             ),
+
             ...folders.map((folder) {
               return ListTile(
                 title: Text(folder),
                 onTap: () {
                   setState(() {
-                    currentFolder = folder; // Update the current folder
-                    emailStream = _getEmailsStream(); // Update the stream
+                    currentFolder = folder;
+                    emailStream = _getEmailsStream();
                   });
-                  Navigator.pop(context); // Close the drawer after selecting folder
+                  Navigator.pop(context);
                 },
               );
             }).toList(),
@@ -73,7 +137,7 @@ class _HomePageState extends State<HomePage> {
             padding: const EdgeInsets.all(16.0),
             child: Text(
               'Welcome, ${widget.user.email ?? widget.user.phoneNumber ?? 'User'}!',
-              style: TextStyle(fontSize: 20),
+              style: Provider.of<ThemeProvider>(context).getTextStyle(),
             ),
           ),
           Expanded(
@@ -83,39 +147,90 @@ class _HomePageState extends State<HomePage> {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return Center(child: CircularProgressIndicator());
                 } else if (snapshot.hasError) {
-                  String errorMessage = 'Error loading emails.';
-                  if (snapshot.error.toString().contains('index is currently building')) {
-                    errorMessage = 'The required index is currently being built. Please try again in a few minutes.';
-                  }
-                  print('Error loading emails: ${snapshot.error}');
-                  return Center(child: Text(errorMessage));
+                  return Center(child: Text('Error loading emails.'));
                 } else if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                   return Center(child: Text('No emails in $currentFolder.'));
                 }
 
                 final emails = snapshot.data!.docs;
+                final filteredEmails = emails.where((email) {
+                  final emailData = email.data() as Map<String, dynamic>;
+                  final subject = emailData['subject'] ?? '';
+                  final body = emailData['body'] ?? '';
+                  return subject.toLowerCase().contains(searchQuery.toLowerCase()) || 
+                        body.toLowerCase().contains(searchQuery.toLowerCase());
+                }).toList();
 
                 return ListView.builder(
-                  itemCount: emails.length,
+                  itemCount: filteredEmails.length,
                   itemBuilder: (context, index) {
-                    final email = emails[index].data() as Map<String, dynamic>;
-                    return _buildCompactEmailListTile(email, emails[index].id);
+                    final email = filteredEmails[index].data() as Map<String, dynamic>;
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          
+                          borderRadius: BorderRadius.circular(8.0),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color.fromARGB(255, 103, 103, 103).withOpacity(0.1),
+                              spreadRadius: 1,
+                              blurRadius: 1,
+                              offset: Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: ListTile(
+                          contentPadding: EdgeInsets.all(12.0),
+                          title: Text(
+                            email['subject'] ?? 'No Subject',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          subtitle: Text(email['body'] ?? 'No Content'),
+                          onTap: () {
+                            // Navigate to detailed email view
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ViewEmailScreen(email: email),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    );
                   },
                 );
               },
             ),
-          ),
+          )
         ],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _navigateToComposeEmail,
         child: Icon(Icons.edit),
-        backgroundColor: Colors.green,
+        backgroundColor: Colors.red,
       ),
     );
   }
 
-  // Navigate to Compose Email Screen
+  void _navigateToSettings() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => SettingsScreen(user: widget.user),
+      ),
+    );
+  }
+
+  void _navigateToViewAllEmails() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ViewAllEmailsScreen(folder: currentFolder, user: widget.user),
+      ),
+    );
+  }
   void _navigateToComposeEmail() {
     Navigator.push(
       context,
@@ -124,26 +239,13 @@ class _HomePageState extends State<HomePage> {
       ),
     );
   }
-
-  // Logout function
-  Future<void> _logout() async {
-    await FirebaseAuth.instance.signOut();
-    // Navigate to the Login screen, removing all previous routes
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (context) => LoginScreen()), // Replace with your Login screen widget
-      (Route<dynamic> route) => false,
-    );
-  }
-
-  // Build compact email list tile with onTap to show email in a dialog
+  
   Widget _buildCompactEmailListTile(Map<String, dynamic> email, String emailId) {
     String bodyPreview = email['body'] ?? 'No Content';
-    // Ensure the preview does not exceed the available length
     if (bodyPreview.length > 30) {
-      bodyPreview = bodyPreview.substring(0, 30) + '...'; // Add ellipsis if the content is longer than 30 characters
+      bodyPreview = bodyPreview.substring(0, 30) + '...';
     }
 
-    // Default to false if starred is null
     bool isStarred = email['starred'] == null ? false : email['starred'];
 
     return ListTile(
@@ -174,129 +276,256 @@ class _HomePageState extends State<HomePage> {
         ],
       ),
       onTap: () {
-        // Show email details in a dialog
-        _showEmailDialog(email);
-      },
-    );
-  }
-
-  // Format the timestamp to a readable format
-  String _formatTimestamp(Timestamp timestamp) {
-    return DateFormat('yyyy-MM-dd HH:mm').format(timestamp.toDate());
-  }
-
-  // Show email details in a pop-up dialog
-  void _showEmailDialog(Map<String, dynamic> email) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text(email['subject'] ?? 'No Subject'),
-          content: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'From: ${email['senderEmail'] ?? 'Unknown'}',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                SizedBox(height: 8),
-                Text(
-                  'To: ${email['receiverEmail'] ?? 'Unknown'}',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                SizedBox(height: 16),
-                Text(
-                  email['body'] ?? 'No Content',
-                  style: TextStyle(fontSize: 16),
-                ),
-              ],
-            ),
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ViewEmailScreen(email: email),
           ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop(); // Close the dialog
-              },
-              child: Text('Close'),
-            ),
-          ],
         );
       },
     );
   }
 
-  // Move email to Trash folder
+  String _formatTimestamp(Timestamp timestamp) {
+    return DateFormat('yyyy-MM-dd HH:mm').format(timestamp.toDate());
+  }
+
   Future<void> _moveToTrash(String emailId) async {
     final emailRef = FirebaseFirestore.instance.collection('emails').doc(emailId);
+    await emailRef.update({'folder': 'Trash'});
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Email moved to Trash')));
+  }
 
-    // Update the folder field to 'Trash'
-    await emailRef.update({
-      'folder': 'Trash',
-    });
+  Future<void> _toggleStarredStatus(String emailId, bool isStarred) async {
+    final emailRef = FirebaseFirestore.instance.collection('emails').doc(emailId);
+    await emailRef.update({'starred': !isStarred});
+  }
 
-    // Optionally, show a snackbar or other UI feedback for success
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Email moved to Trash')),
+  Stream<QuerySnapshot> _getEmailsStream() {
+    final collection = FirebaseFirestore.instance.collection('emails');
+
+    switch (currentFolder) {
+      case 'Inbox':
+        return collection
+            .where('folder', isEqualTo: 'Inbox')
+            .where('receiverId', isEqualTo: widget.user.uid)
+            .orderBy('timestamp', descending: true)
+            .snapshots();
+      case 'Starred':
+        return collection
+            .where('folder', isEqualTo: 'Inbox')
+            .where('receiverId', isEqualTo: widget.user.uid)
+            .where('starred', isEqualTo: true)
+            .orderBy('timestamp', descending: true)
+            .snapshots();
+      case 'Sent':
+        return collection
+            .where('folder', isEqualTo: 'Sent')
+            .where('senderId', isEqualTo: widget.user.uid)
+            .orderBy('timestamp', descending: true)
+            .snapshots();
+      case 'Draft':
+        return collection
+            .where('folder', isEqualTo: 'Draft')
+            .where('senderId', isEqualTo: widget.user.uid)
+            .where('body', isEqualTo: '')
+            .orderBy('timestamp', descending: true)
+            .snapshots();
+      case 'Trash':
+        return collection
+            .where('folder', isEqualTo: 'Trash')
+            .where('receiverId', isEqualTo: widget.user.uid)
+            .orderBy('timestamp', descending: true)
+            .snapshots();
+      default:
+        return Stream.empty();
+    }
+  }
+}
+
+class ViewAllEmailsScreen extends StatelessWidget {
+  final String folder;
+  final User user;
+
+  ViewAllEmailsScreen({required this.folder, required this.user});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('All Emails - $folder'),
+        backgroundColor: Colors.red,
+      ),
+      body: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance
+            .collection('emails')
+            .where('folder', isEqualTo: folder)
+            .where('receiverId', isEqualTo: user.uid)
+            .orderBy('timestamp', descending: true)
+            .snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Center(child: CircularProgressIndicator());
+          } else if (snapshot.hasError) {
+            return Center(child: Text('Error loading emails.'));
+          } else if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return Center(child: Text('No emails in $folder.'));
+          }
+
+          final emails = snapshot.data!.docs;
+
+          return ListView.builder(
+            itemCount: emails.length,
+            itemBuilder: (context, index) {
+              final email = emails[index].data() as Map<String, dynamic>;
+              return ListTile(
+                title: Text(email['subject'] ?? 'No Subject'),
+                subtitle: Text(email['body'] ?? 'No Content'),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ViewEmailScreen(email: email),
+                    ),
+                  );
+                },
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+}
+
+class ViewEmailScreen extends StatelessWidget {
+  final Map<String, dynamic> email;
+
+  ViewEmailScreen({required this.email});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(email['subject'] ?? 'No Subject'),
+        backgroundColor: Colors.red,
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Sender Info
+              Container(
+                padding: EdgeInsets.all(12.0),
+                
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'From: ${email['senderEmail'] ?? 'Unknown'}',                    
+                      style: Provider.of<ThemeProvider>(context).getTextStyle(),          
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      'To: ${email['receiverEmail'] ?? 'Unknown'}',
+                      style: Provider.of<ThemeProvider>(context).getTextStyle(),
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(height: 16),
+              Divider(),
+              SizedBox(height: 16),
+              // Body of the email in a container
+              Container(
+                padding: EdgeInsets.all(16.0),
+                
+                child: Text(
+                  email['body'] ?? 'No Content',
+                  style: Provider.of<ThemeProvider>(context).getTextStyle(),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+
+class EmailSearchDelegate extends SearchDelegate {
+  final String currentFolder;
+  final User user;
+
+  EmailSearchDelegate({required this.currentFolder, required this.user});
+
+  @override
+  List<Widget> buildActions(BuildContext context) {
+    return [
+      IconButton(
+        icon: Icon(Icons.clear),
+        onPressed: () {
+          query = '';
+        },
+      ),
+    ];
+  }
+
+  @override
+  Widget buildLeading(BuildContext context) {
+    return IconButton(
+      icon: Icon(Icons.arrow_back),
+      onPressed: () {
+        close(context, null);
+      },
     );
   }
 
-  // Toggle starred status for email
-  Future<void> _toggleStarredStatus(String emailId, bool isStarred) async {
-    final emailRef = FirebaseFirestore.instance.collection('emails').doc(emailId);
-    
-    // Update the starred field to the opposite value (true to false, or false to true)
-    await emailRef.update({
-      'starred': !isStarred,
-    });
+  @override
+  Widget buildResults(BuildContext context) {
+    return _buildSearchResults();
   }
 
-  // Get email stream based on the selected folder
-  Stream<QuerySnapshot> _getEmailsStream() {
-    try {
-      print('Fetching emails for folder: $currentFolder');
-      final collection = FirebaseFirestore.instance.collection('emails');
+  @override
+  Widget buildSuggestions(BuildContext context) {
+    return _buildSearchResults();
+  }
 
-      switch (currentFolder) {
-        case 'Inbox':
-          return collection
-              .where('folder', isEqualTo: 'Inbox')
-              .where('receiverId', isEqualTo: widget.user.uid)
-              .orderBy('timestamp', descending: true)
-              .snapshots();
-        case 'Starred':
-          return collection
-              .where('folder', isEqualTo: 'Inbox')  // Starred emails are still in the Inbox folder
-              .where('receiverId', isEqualTo: widget.user.uid)
-              .where('starred', isEqualTo: true)   // Only fetch starred emails
-              .orderBy('timestamp', descending: true)
-              .snapshots();
-        case 'Sent':
-          return collection
-              .where('folder', isEqualTo: 'Sent')
-              .where('senderId', isEqualTo: widget.user.uid)
-              .orderBy('timestamp', descending: true)
-              .snapshots();
-        case 'Draft':
-          return collection
-              .where('folder', isEqualTo: 'Draft')  // Fetch emails in the Draft folder
-              .where('senderId', isEqualTo: widget.user.uid)
-              .where('body', isEqualTo: '')  // Assuming that unfinished emails have an empty body
-              .orderBy('timestamp', descending: true)
-              .snapshots();
-        case 'Trash':
-          return collection
-              .where('folder', isEqualTo: 'Trash')  // Fetch emails in the Trash folder
-              .where('receiverId', isEqualTo: widget.user.uid)
-              .orderBy('timestamp', descending: true)
-              .snapshots();
-        default:
-          print('Unrecognized folder: $currentFolder');
-          return Stream.empty();
-      }
-    } catch (e) {
-      print('Error in Firestore query: $e');
-      return Stream.empty();
-    }
+  Widget _buildSearchResults() {
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('emails')
+          .where('folder', isEqualTo: currentFolder)
+          .where('receiverId', isEqualTo: user.uid)
+          .orderBy('timestamp', descending: true)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          return Center(child: Text('No emails found.'));
+        }
+
+        final filteredEmails = snapshot.data!.docs.where((email) {
+          final emailData = email.data() as Map<String, dynamic>;
+          final subject = emailData['subject'] ?? '';
+          final body = emailData['body'] ?? '';
+          return subject.toLowerCase().contains(query.toLowerCase()) ||
+                 body.toLowerCase().contains(query.toLowerCase());
+        }).toList();
+
+        return ListView.builder(
+          itemCount: filteredEmails.length,
+          itemBuilder: (context, index) {
+            final email = filteredEmails[index].data() as Map<String, dynamic>;
+            return ListTile(
+              title: Text(email['subject'] ?? 'No Subject'),
+              subtitle: Text(email['body'] ?? 'No Content'),
+            );
+          },
+        );
+      },
+    );
   }
 }

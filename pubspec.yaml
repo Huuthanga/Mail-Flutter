@@ -31,12 +31,18 @@ dependencies:
   flutter:
     sdk: flutter
   country_picker: ^2.0.27
+  shared_preferences: ^2.1.0
   firebase_core: ^3.8.0
   firebase_auth: ^5.3.3
   cloud_firestore: ^5.5.0
   flutter_secure_storage: ^8.0.0
-  image_picker: ^0.8.7+4
+  image_picker: ^1.1.2
   intl: ^0.20.1
+  provider: ^6.0.5
+  path_provider: ^2.1.5
+  flutter_image_compress: ^2.3.0
+  image_picker_web: ^4.0.0
+  
 
 dev_dependencies:
   flutter_test:
