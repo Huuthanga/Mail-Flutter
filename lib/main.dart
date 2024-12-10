@@ -10,13 +10,12 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
     options: FirebaseOptions(
-      apiKey: "AIzaSyDqJ2ejofU6wF7a3HfX82OmqN_QxhRQTdc",
-      authDomain: "kuro-309ef.firebaseapp.com",
-      projectId: "kuro-309ef",
-      storageBucket: "kuro-309ef.firebasestorage.app",
-      messagingSenderId: "173175777832",
-      appId: "1:173175777832:web:d3c7f864cca64e2231631d",
-      measurementId: "G-MB5Z73DPZL",
+      apiKey: "AIzaSyAG-Z5eJesCZrHIwJ0qwS67fF4jiVZi3LQ",
+        authDomain: "clone-b96c3.firebaseapp.com",
+        projectId: "clone-b96c3",
+        storageBucket: "clone-b96c3.firebasestorage.app",
+        messagingSenderId: "778774618725",
+        appId: "1:778774618725:web:219db961efb1d7dc275c8c"
     ),
   );
   runApp(MyApp());
